@@ -1,5 +1,8 @@
 library(dplyr)
 library(igraph)
+library(foreach)
+library(doMC)
+registerDoMC(4)
 
 set.seed(15840)
 
@@ -156,14 +159,14 @@ simulate_ind_randomization <- function(data, pct, effect_size) {
   )
 }
 
-a <- simulate_ind_randomization(data=airbnb_listings, pct=1, 
-                             effect_size = -.5) 
-
-b <- simulate_ind_randomization(data=airbnb_listings, pct=0, 
-                                  effect_size = -.5) 
-
 c <- simulate_ind_randomization(data = airbnb_listings, pct = .5,
                                 effect_size = -.5)
 
 d <- simulate_graph_randomization(data=airbnb_listings, pct=.5,
                                   effect_size = -.5, community=clusters_distance_room_type_accom)
+
+treatment_reality <- foreach(i = 1:1000, .combine = rbind) %dopar% simulate_ind_randomization(data=airbnb_listings, 
+                                                                                              pct=1, effect_size = -.5) 
+
+control_reality <- foreach(i = 1:1000, .combine = rbind) %dopar% simulate_ind_randomization(data=airbnb_listings, 
+                                                                                            pct=0, effect_size = -.5)

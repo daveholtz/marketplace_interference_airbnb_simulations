@@ -79,12 +79,12 @@ airbnb_listings %>%
                 `Entire home/apt`, `Private room`, `Shared room`) -> airbnb_listings
 
 airbnb_listings %>% 
-  mutate(reviews_scaled = scale(reviews, scale=TRUE),
-         satisfaction_scaled = scale(overall_satisfaction, scale=TRUE),
-         accomm_scaled = scale(overall_satisfaction, scale=TRUE),
-         bed_scaled = scale(bedrooms, scale=TRUE),
-         bath_scaled = scale(bathrooms, scale=TRUE),
-         minstay_scaled = scale(minstay, scale=TRUE)) -> airbnb_listings
+  mutate(reviews_scaled = as.numeric(scale(reviews, scale=TRUE)),
+         satisfaction_scaled = as.numeric(scale(overall_satisfaction, scale=TRUE)),
+         accomm_scaled = as.numeric(scale(overall_satisfaction, scale=TRUE)),
+         bed_scaled = as.numeric(scale(bedrooms, scale=TRUE)),
+         bath_scaled = as.numeric(scale(bathrooms, scale=TRUE)),
+         minstay_scaled = as.numeric(scale(minstay, scale=TRUE))) -> airbnb_listings
 
 save(airbnb_listings, clusters_distance_room_type_accom, graph_distance_room_type_accom, 
      clusters_distance_room_type, graph_distance_room_type, graph_distance_only, clusters_distance_only,

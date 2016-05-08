@@ -134,6 +134,38 @@ simulate_graph_randomization <- function(data, pct, effect_size, community, grap
                                                           c(eff_treatment_booked_95 + eff_treatment_unbooked_95, 
                                                             eff_control_booked_95 + eff_control_unbooked_95))$p.value)
   
+  treatment_prices <- c(filter(booked_rooms, assignments[cluster_membership] == 1)$price, rep(0, treatment_unbooked))
+  eff_treatment_prices_95 <- c(filter(booked_rooms, assignments[cluster_membership] == 1 & 
+                                        pct_treated_neighbors >= .95)$price, 
+                               rep(0, eff_treatment_unbooked_95))
+  eff_treatment_prices_75 <- c(filter(booked_rooms, assignments[cluster_membership] == 1 & 
+                                        pct_treated_neighbors >= .75)$price, 
+                               rep(0, eff_treatment_unbooked_75))
+  eff_treatment_prices_50 <- c(filter(booked_rooms, assignments[cluster_membership] == 1 & 
+                                        pct_treated_neighbors >= .50)$price, 
+                               rep(0, eff_treatment_unbooked_50))
+  
+  control_prices <- c(filter(booked_rooms, assignments[cluster_membership] == 0)$price, rep(0, control_unbooked))
+  eff_control_prices_95 <- c(filter(booked_rooms, assignments[cluster_membership] == 0 & 
+                                      (1-pct_treated_neighbors) >= .95)$price, 
+                             rep(0, eff_control_unbooked_95))
+  eff_control_prices_75 <- c(filter(booked_rooms, assignments[cluster_membership] == 0 & 
+                                      (1-pct_treated_neighbors) >= .75)$price, 
+                             rep(0, eff_control_unbooked_75))
+  eff_control_prices_50 <- c(filter(booked_rooms, assignments[cluster_membership] == 0 & 
+                                      (1-pct_treated_neighbors) >= .50)$price, 
+                             rep(0, eff_control_unbooked_50))
+  
+  
+  
+  price_p_value <- ifelse(pct %in% c(0,1), 'NA', wilcox.test(treatment_prices, control_prices)$p.value)
+  eff_price_p_value_50 <- ifelse(pct %in% c(0,1), 'NA', wilcox.test(eff_treatment_prices_50, 
+                                                                    eff_control_prices_50)$p.value)
+  eff_price_p_value_75 <- ifelse(pct %in% c(0,1), 'NA', wilcox.test(eff_treatment_prices_75, 
+                                                                    eff_control_prices_75)$p.value)
+  eff_price_p_value_95 <- ifelse(pct %in% c(0,1), 'NA', wilcox.test(eff_treatment_prices_95, 
+                                                                    eff_control_prices_95)$p.value)  
+  
   hajek_estimator_75 <- sum(1/filter(booked_rooms, assignments[cluster_membership] == 1 & 
                                      pct_treated_neighbors >= .75 & prob_treat_75_thresh != 0)$prob_treat_75_thresh)/(
                                        sum(1/filter(booked_rooms, assignments[cluster_membership] == 1 & 
@@ -313,7 +345,11 @@ simulate_graph_randomization <- function(data, pct, effect_size, community, grap
              hajek_estimator_50 = hajek_estimator_50,
              price_hajek_estimator_75 = price_hajek_estimator_75,
              price_hajek_estimator_95 = price_hajek_estimator_95,
-             price_hajek_estimator_50 = price_hajek_estimator_50
+             price_hajek_estimator_50 = price_hajek_estimator_50,
+             price_p_value = price_p_value,
+             eff_price_p_value_50 = eff_price_p_value_50,
+             eff_price_p_value_75 = eff_price_p_value_75,
+             eff_price_p_value_95 = eff_price_p_value_95
              )
 }
 
@@ -379,6 +415,11 @@ simulate_ind_randomization <- function(data, pct, effect_size) {
                                                      c(treatment_booked + treatment_unbooked, 
                                                        control_booked + control_unbooked))$p.value)
   
+  treatment_prices <- c(filter(booked_rooms, assignment == 1)$price, rep(0, treatment_unbooked))
+  control_prices <- c(filter(booked_rooms, assignment == 0)$price, rep(0, control_unbooked))
+  
+  price_p_value <- ifelse(pct %in% c(0,1), 'NA', wilcox.test(treatment_prices, control_prices)$p.value)
+  
   data.frame(treatment_booked = treatment_booked, 
              treatment_unbooked = treatment_unbooked, 
              treatment_booking_rate = treatment_booked/(treatment_unbooked + treatment_booked),
@@ -389,7 +430,8 @@ simulate_ind_randomization <- function(data, pct, effect_size) {
              control_booking_rate = control_booked/(control_unbooked + control_booked),
              control_revenue = control_revenue,
              control_revenue_per_user = control_revenue/(control_unbooked + control_booked),
-             p_value = p_value
+             p_value = p_value,
+             price_p_value = price_p_value
   )
 }
 

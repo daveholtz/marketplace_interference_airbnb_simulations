@@ -393,8 +393,10 @@ simulate_ind_randomization <- function(data, pct, effect_size) {
   )
 }
 
+set.seed(15840)
 treatment_reality <- foreach(i = 1:1000, .combine = rbind) %dopar% simulate_ind_randomization(data=airbnb_listings, 
                                                                                               pct=1, effect_size = -.5) 
+
 control_reality <- foreach(i = 1:1000, .combine = rbind) %dopar% simulate_ind_randomization(data=airbnb_listings, 
                                                                                             pct=0, effect_size = -.5)
 save(control_reality, treatment_reality, file='baseline_distributions.Rdata')
@@ -410,3 +412,14 @@ save(treatment_50_cluster_drta, file='cluster_performance_50_pct_negative_50_eff
 set.seed(15840)
 treatment_50_ind_drta <- foreach(i = 1:1000, .combine = rbind) %dopar% simulate_ind_randomization(data=airbnb_listings,
                                                                                                   pct=.5, effect_size = -.5)
+save(treatment_50_ind_drta, file='ind_performance_50_pct_negative_50_effect.Rdata')
+
+set.seed(15840)
+treatment_reality_20 <- foreach(i = 1:1000, .combine = rbind) %dopar% simulate_ind_randomization(data=airbnb_listings, 
+                                                                                              pct=1, effect_size = -.2) 
+save(treatment_reality_20, file='treatment_minus_20_distribution.Rdata')
+
+set.seed(15840)
+treatment_20_ind_drta <- foreach(i = 1:1000, .combine = rbind) %dopar% simulate_ind_randomization(data=airbnb_listings,
+                                                                                                  pct=.5, effect_size = -.2)
+save(treatment_20_ind_drta, file='ind_performance_50_pct_negative_20_effect.Rdata')

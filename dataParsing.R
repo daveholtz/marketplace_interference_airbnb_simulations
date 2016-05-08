@@ -19,6 +19,41 @@ imputeMean <- function(vector) {
   return(vector)
 }
 
+pct_treated_neighbors <- function(graph, vertex, community, assignments) { 
+  sum(
+    ifelse(
+      assignments[membership(community)[neighbors(graph, vertex)]] == 1,
+      1, 0)
+  )/length(neighbors(graph, vertex))
+}
+
+hajek_probabilities <- function(dataframe, clusters, graph, threshold, treatment_prob, n_iter) { 
+  n_effective_treatment <- rep(0, nrow(dataframe))
+  n_effective_control <- rep(0, nrow(dataframe))
+  
+  for (i in 1:n_iter) {
+    n_communities <- length(clusters)
+    assignments <- rbinom(n_communities, 1, treatment_prob)
+    dataframe$cluster_membership <- membership(clusters)
+    dataframe$pct_treated_neighbors <- sapply(1:nrow(dataframe), 
+                                              pct_treated_neighbors, 
+                                              graph = graph, community = clusters, assignments = assignments)
+    dataframe %>% mutate(
+      effective_treatment = ifelse(assignments[cluster_membership] == 1 & pct_treated_neighbors >= threshold, 1, 0),
+      effective_control = ifelse(assignments[cluster_membership] == 0 & pct_treated_neighbors <= (1-threshold), 1, 0)
+    ) -> dataframe
+    
+    n_effective_treatment = n_effective_treatment + dataframe$effective_treatment
+    n_effective_control = n_effective_control + dataframe$effective_control
+    print(i)
+  }
+  
+  prob_effective_treatment <- n_effective_treatment/n_iter
+  prob_effective_control <- n_effective_control/n_iter
+  
+  return(list(prob_effective_treatment, prob_effective_control))
+}
+
 mile_in_meters <- 1609.34
 
 airbnb_listings$accommodates <- imputeMode(airbnb_listings$accommodates)
@@ -86,6 +121,54 @@ airbnb_listings %>%
          bath_scaled = as.numeric(scale(bathrooms, scale=TRUE)),
          minstay_scaled = as.numeric(scale(minstay, scale=TRUE))) -> airbnb_listings
 
+hajek_probabilities_75_50_drta <- hajek_probabilities(airbnb_listings, clusters_distance_room_type_accom, 
+                                                 graph_distance_room_type_accom, .75, .5, 100)
+
+hajek_probabilities_50_50_drta <- hajek_probabilities(airbnb_listings, clusters_distance_room_type_accom, 
+                                                      graph_distance_room_type_accom, .5, .5, 100)
+
+hajek_probabilities_95_50_drta <- hajek_probabilities(airbnb_listings, clusters_distance_room_type_accom, 
+                                                      graph_distance_room_type_accom, .95, .5, 100)
+
+save(hajek_probabilities_50_50_drta, hajek_probabilities_75_50_drta, hajek_probabilities_95_50_drta, file='hajek_probabilities.Rdata')
+
+hajek_probabilities_50_50_drta[[1]][is.na(hajek_probabilities_50_50_drta[[1]])] <- 0
+hajek_probabilities_50_50_drta[[2]][is.na(hajek_probabilities_50_50_drta[[2]])] <- 0
+
+hajek_probabilities_75_50_drta[[1]][is.na(hajek_probabilities_75_50_drta[[1]])] <- 0
+hajek_probabilities_75_50_drta[[2]][is.na(hajek_probabilities_75_50_drta[[2]])] <- 0
+
+hajek_probabilities_95_50_drta[[1]][is.na(hajek_probabilities_95_50_drta[[1]])] <- 0
+hajek_probabilities_95_50_drta[[2]][is.na(hajek_probabilities_95_50_drta[[2]])] <- 0
+
+airbnb_listings$prob_treat_50_thresh <- hajek_probabilities_50_50_drta[[1]]
+airbnb_listings$prob_control_50_thresh <- hajek_probabilities_50_50_drta[[2]]
+
+airbnb_listings$prob_treat_75_thresh <- hajek_probabilities_75_50_drta[[1]]
+airbnb_listings$prob_control_75_thresh <- hajek_probabilities_75_50_drta[[2]]
+
+airbnb_listings$prob_treat_95_thresh <- hajek_probabilities_95_50_drta[[1]]
+airbnb_listings$prob_control_95_thresh <- hajek_probabilities_95_50_drta[[2]]
+
 save(airbnb_listings, clusters_distance_room_type_accom, graph_distance_room_type_accom, 
      clusters_distance_room_type, graph_distance_room_type, graph_distance_only, clusters_distance_only,
      file = 'data_for_simulation.Rdata')
+
+
+#hajek_probabilities_75_50_drt <- hajek_probabilities(airbnb_listings, clusters_distance_room_type, 
+#                                                      graph_distance_room_type, .75, .5, 100)
+#
+#hajek_probabilities_50_50_drt <- hajek_probabilities(airbnb_listings, clusters_distance_room_type, 
+#                                                      graph_distance_room_type, .5, .5, 100)
+#
+#hajek_probabilities_95_50_drt <- hajek_probabilities(airbnb_listings, clusters_distance_room_type, 
+#                                                      graph_distance_room_type, .95, .5, 100)
+#
+#hajek_probabilities_75_50_d <- hajek_probabilities(airbnb_listings, clusters_distance_only, 
+#                                                     graph_distance_only, .75, .5, 100)
+#
+#hajek_probabilities_50_50_d <- hajek_probabilities(airbnb_listings, clusters_distance_only, 
+#                                                     graph_distance_only, .5, .5, 100)
+#
+#hajek_probabilities_95_50_d <- hajek_probabilities(airbnb_listings, clusters_distance_only, 
+#                                                     graph_distance_only, .95, .5, 100)#

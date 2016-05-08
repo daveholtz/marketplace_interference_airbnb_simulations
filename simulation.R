@@ -187,7 +187,81 @@ simulate_graph_randomization <- function(data, pct, effect_size, community, grap
                                                               sum(1/filter(data, assignments[cluster_membership] == 0 & 
                                                                              (1-pct_treated_neighbors) >= .95 & 
                                                                              prob_control_95_thresh != 0)$prob_control_95_thresh))
-                                                          
+  
+  price_hajek_estimator_75 <- sum((filter(booked_rooms, assignments[cluster_membership] == 1 & 
+                                            pct_treated_neighbors >= .75 & 
+                                            prob_treat_75_thresh != 0)$price)*(1/filter(booked_rooms, 
+                                                                                        assignments[cluster_membership] == 1 &
+                                            pct_treated_neighbors >= .75 & 
+                                              prob_treat_75_thresh != 0)$prob_treat_75_thresh))/(
+                                         sum(1/filter(booked_rooms, assignments[cluster_membership] == 1 & 
+                                                        pct_treated_neighbors >= .75 & 
+                                                        prob_treat_75_thresh != 0)$prob_treat_75_thresh) + 
+                                           sum(1/filter(data, assignments[cluster_membership] == 1 & 
+                                                          pct_treated_neighbors >= .75 & 
+                                                          prob_treat_75_thresh != 0)$prob_treat_75_thresh)
+                                       ) - sum((filter(booked_rooms, assignments[cluster_membership] == 0 & 
+                                                         (1-pct_treated_neighbors) >= .75 & 
+                                                         prob_control_75_thresh != 0)$price)*(1/filter(booked_rooms, 
+                                                                assignments[cluster_membership] == 0 &
+                                                                  (1-pct_treated_neighbors) >= .75 & 
+                                                                  prob_control_75_thresh != 0)$prob_control_75_thresh))/(sum(
+                                                            1/filter(booked_rooms, assignments[cluster_membership] == 0 & 
+                                                                       (1-pct_treated_neighbors) >= .75 & 
+                                                                       prob_control_75_thresh != 0)$prob_control_75_thresh) + 
+                                                              sum(1/filter(data, assignments[cluster_membership] == 0 & 
+                                                        (1-pct_treated_neighbors) >= .75 & 
+                                                        prob_control_75_thresh != 0)$prob_control_75_thresh))
+  
+  price_hajek_estimator_50 <- sum((filter(booked_rooms, assignments[cluster_membership] == 1 & 
+                                            pct_treated_neighbors >= .5 & 
+                                            prob_treat_50_thresh != 0)$price)*(1/filter(booked_rooms, 
+                                  assignments[cluster_membership] == 1 &
+                                    pct_treated_neighbors >= .5 & 
+                                    prob_treat_50_thresh != 0)$prob_treat_50_thresh))/(
+                                      sum(1/filter(booked_rooms, assignments[cluster_membership] == 1 & 
+                                                     pct_treated_neighbors >= .5 & 
+                                                     prob_treat_50_thresh != 0)$prob_treat_5_thresh) + 
+                                        sum(1/filter(data, assignments[cluster_membership] == 1 & 
+                                                       pct_treated_neighbors >= .5 & 
+                                                       prob_treat_50_thresh != 0)$prob_treat_50_thresh)
+                                    ) - sum((filter(booked_rooms, assignments[cluster_membership] == 0 & 
+                                                      (1-pct_treated_neighbors) >= .5 & 
+                                                      prob_control_50_thresh != 0)$price)*(1/filter(booked_rooms, 
+                                       assignments[cluster_membership] == 0 &
+                                         (1-pct_treated_neighbors) >= .5 & 
+                                         prob_control_50_thresh != 0)$prob_control_50_thresh))/(sum(
+                                           1/filter(booked_rooms, assignments[cluster_membership] == 0 & 
+                                                      (1-pct_treated_neighbors) >= .5 & 
+                                                      prob_control_50_thresh != 0)$prob_control_50_thresh) + 
+                                             sum(1/filter(data, assignments[cluster_membership] == 0 & 
+                                                            (1-pct_treated_neighbors) >= .5 & 
+                                                   prob_control_50_thresh != 0)$prob_control_50_thresh))  
+  
+  price_hajek_estimator_95 <- sum((filter(booked_rooms, assignments[cluster_membership] == 1 & 
+                                            pct_treated_neighbors >= .95 & 
+                                            prob_treat_95_thresh != 0)$price)*(1/filter(booked_rooms, 
+                assignments[cluster_membership] == 1 &
+                  pct_treated_neighbors >= .95 & 
+                  prob_treat_95_thresh != 0)$prob_treat_95_thresh))/(
+                    sum(1/filter(booked_rooms, assignments[cluster_membership] == 1 & 
+                                   pct_treated_neighbors >= .95 & 
+                                   prob_treat_95_thresh != 0)$prob_treat_95_thresh) + 
+                      sum(1/filter(data, assignments[cluster_membership] == 1 & 
+                                     pct_treated_neighbors >= .95 & 
+                                     prob_treat_95_thresh != 0)$prob_treat_95_thresh)
+                  ) - sum((filter(booked_rooms, assignments[cluster_membership] == 0 & 
+                                    (1-pct_treated_neighbors) >= .95 & 
+                                    prob_control_95_thresh != 0)$price)*(1/filter(booked_rooms, 
+                  assignments[cluster_membership] == 0 &
+                    (1-pct_treated_neighbors) >= .95 & 
+                   prob_control_95_thresh != 0)$prob_control_95_thresh))/(sum(
+                     1/filter(booked_rooms, assignments[cluster_membership] == 0 & 
+                                (1-pct_treated_neighbors) >= .95 & 
+                                prob_control_95_thresh != 0)$prob_control_95_thresh) + 
+                       sum(1/filter(data, assignments[cluster_membership] == 0 & 
+                       (1-pct_treated_neighbors) >= .95 & 
+                         prob_control_95_thresh != 0)$prob_control_95_thresh))                                                            
   
   
   data.frame(treatment_booked = treatment_booked, 
@@ -236,7 +310,10 @@ simulate_graph_randomization <- function(data, pct, effect_size, community, grap
              eff_p_value_95 = eff_p_value_95,
              hajek_estimator_75 = hajek_estimator_75,
              hajek_estimator_95 = hajek_estimator_95,
-             hajek_estimator_50 = hajek_estimator_50
+             hajek_estimator_50 = hajek_estimator_50,
+             price_hajek_estimator_75 = price_hajek_estimator_75,
+             price_hajek_estimator_95 = price_hajek_estimator_95,
+             price_hajek_estimator_50 = price_hajek_estimator_50
              )
 }
 

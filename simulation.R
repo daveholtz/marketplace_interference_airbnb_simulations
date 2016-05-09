@@ -8,17 +8,11 @@ load('data_for_simulation.Rdata')
 
 set.seed(15840)
 
-pct_treated_neighbors <- function(graph, vertex, community, assignments) { 
-  sum(
-    ifelse(
-      assignments[membership(community)[neighbors(graph, vertex)]] == 1,
-      1, 0)
-    )/length(neighbors(graph, vertex))
-  }
-
 simulate_graph_randomization <- function(data, pct, effect_size, community, graph) {
   n_communities <- length(community)
   assignments <- rbinom(n_communities, 1, pct)
+  vertsInAssignments <- membership(community) %in% which(assignments == 1)
+  
   data$cluster_membership <- membership(community)
   search_weights <- prop.table(runif(6))
   data %>% 
@@ -28,9 +22,10 @@ simulate_graph_randomization <- function(data, pct, effect_size, community, grap
              search_weights[3]*bed_scaled + search_weights[4]*bath_scaled - 
              search_weights[5]*minstay_scaled - search_weights[6]*price_scaled) -> data
   
-  data$pct_treated_neighbors <- sapply(1:nrow(data), 
-                                       pct_treated_neighbors, 
-                                       graph = graph, community = community, assignments = assignments)
+  data$pct_treated_neighbors <- sapply(1:vcount(graph), FUN=function(i){
+    neigh <- neighbors(graph, i)
+    sum(vertsInAssignments[neigh])/length(neigh)
+  })
   
   max_lon <- max(data$longitude)
   max_lat <- max(data$latitude)
@@ -465,3 +460,9 @@ set.seed(15840)
 treatment_20_ind_drta <- foreach(i = 1:1000, .combine = rbind) %dopar% simulate_ind_randomization(data=airbnb_listings,
                                                                                                   pct=.5, effect_size = -.2)
 save(treatment_20_ind_drta, file='ind_performance_50_pct_negative_20_effect.Rdata')
+
+set.seed(15840)
+treatment_20_cluster_drta <- foreach(i = 1:1000, .combine=rbind) %dopar% simulate_graph_randomization(
+  data = airbnb_listings, pct=.5, effect_size = -.2, community=clusters_distance_room_type_accom, 
+  graph = graph_distance_room_type_accom)
+save(treatment_20_cluster_drta, file='cluster_performance_50_pct_negative_20_effect.Rdata')

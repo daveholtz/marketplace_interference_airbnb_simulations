@@ -19,14 +19,6 @@ imputeMean <- function(vector) {
   return(vector)
 }
 
-pct_treated_neighbors <- function(graph, vertex, community, assignments) { 
-  sum(
-    ifelse(
-      assignments[membership(community)[neighbors(graph, vertex)]] == 1,
-      1, 0)
-  )/length(neighbors(graph, vertex))
-}
-
 hajek_probabilities <- function(dataframe, clusters, graph, threshold, treatment_prob, n_iter) { 
   n_effective_treatment <- rep(0, nrow(dataframe))
   n_effective_control <- rep(0, nrow(dataframe))
@@ -34,10 +26,12 @@ hajek_probabilities <- function(dataframe, clusters, graph, threshold, treatment
   for (i in 1:n_iter) {
     n_communities <- length(clusters)
     assignments <- rbinom(n_communities, 1, treatment_prob)
+    vertsInAssignments <- membership(clusters) %in% which(assignments == 1)
     dataframe$cluster_membership <- membership(clusters)
-    dataframe$pct_treated_neighbors <- sapply(1:nrow(dataframe), 
-                                              pct_treated_neighbors, 
-                                              graph = graph, community = clusters, assignments = assignments)
+    dataframe$pct_treated_neighbors <- sapply(1:vcount(graph), FUN=function(i){
+      neigh <- neighbors(graph, i)
+      sum(vertsInAssignments[neigh])/length(neigh)
+    })
     dataframe %>% mutate(
       effective_treatment = ifelse(assignments[cluster_membership] == 1 & pct_treated_neighbors >= threshold, 1, 0),
       effective_control = ifelse(assignments[cluster_membership] == 0 & pct_treated_neighbors <= (1-threshold), 1, 0)

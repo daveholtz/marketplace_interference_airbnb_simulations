@@ -228,7 +228,7 @@ price_cluster_hajek_minus_50 <- ggplot(treatment_50_cluster_drta,
   xlab('Difference in Average Revenue Per Listing (USD)') + 
   ylab('# of Simulations') + 
   labs(fill='') + 
-  ggtitle('Average Revenue Per Listing ATE with Graph Cluster Randomization and\n FNTR Hajek (Effect Size = -50%)') + 
+  ggtitle('Average Revenue Per Listing ATE \n with Graph Cluster Randomization and\n FNTR Hajek (Effect Size = -50%)') + 
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),

@@ -1,9 +1,11 @@
 library(geosphere)
 library(igraph)
 library(dplyr)
+library(blockTools)
 
 setwd('~/Desktop/mit_15840_paper/')
 airbnb_listings <- read.csv('Airbnb_Listings_Miami.csv', row.names=1)
+set.seed(15840)
 
 Mode <- function(vector) { 
   as.numeric(names(sort(-table(vector)))[1])
@@ -19,13 +21,16 @@ imputeMean <- function(vector) {
   return(vector)
 }
 
-hajek_probabilities <- function(dataframe, clusters, graph, threshold, treatment_prob, n_iter) { 
+hajek_probabilities <- function(dataframe, clusters, graph, threshold, treatment_prob, n_iter, blocks) { 
   n_effective_treatment <- rep(0, nrow(dataframe))
   n_effective_control <- rep(0, nrow(dataframe))
   
   for (i in 1:n_iter) {
     n_communities <- length(clusters)
-    assignments <- rbinom(n_communities, 1, treatment_prob)
+    #vertsInAssignments <- membership(clusters) %in% which(assignments == 1)
+    assignments <- rep(0, n_communities)
+    assignments[as.numeric(
+      as.character(unlist(blockTools::assignment(blocks)[[1]][[1]]['Treatment 1'])))] <- 1
     vertsInAssignments <- membership(clusters) %in% which(assignments == 1)
     dataframe$cluster_membership <- membership(clusters)
     dataframe$pct_treated_neighbors <- sapply(1:vcount(graph), FUN=function(i){
@@ -115,16 +120,57 @@ airbnb_listings %>%
          bath_scaled = as.numeric(scale(bathrooms, scale=TRUE)),
          minstay_scaled = as.numeric(scale(minstay, scale=TRUE))) -> airbnb_listings
 
+df_for_blocking <- airbnb_listings
+df_for_blocking$cluster_assignment <- membership(clusters_distance_room_type_accom)
+
+df_for_blocking %>%
+  group_by(cluster_assignment) %>% 
+  summarise(n = n(),
+            avg_reviews_scaled = mean(reviews_scaled),
+            avg_satisfaction_scaled = mean(satisfaction_scaled),
+            avg_accom_scaled = mean(accomm_scaled),
+            avg_bed_scaled = mean(bed_scaled),
+            avg_bath_scaled = mean(bath_scaled),
+            avg_minstay_scaled = mean(minstay_scaled),
+            avg_lat = mean(latitude),
+            avg_lon = mean(longitude),
+            pct_private_room = mean(`Private room`),
+            pct_shared_room = mean(`Shared room`),
+            pct_entire_home = mean(`Entire home/apt`),
+            sd_reviews_scaled = sd(reviews_scaled),
+            sd_satisfaction_scaled = sd(satisfaction_scaled),
+            sd_accom_scaled = sd(accomm_scaled),
+            sd_bed_scaled = sd(bed_scaled),
+            sd_bath_scaled = sd(bath_scaled),
+            sd_minstay_scaled = sd(minstay_scaled),
+            sd_lat = sd(latitude),
+            sd_lon = sd(longitude)) %>% 
+  ungroup() -> df_for_blocking
+
+save(df_for_blocking, file='df_for_blocking.Rdata')
+
+blocks <- blockTools::block(as.data.frame(df_for_blocking), id.vars="cluster_assignment", 
+                            block.vars = c('n', 
+                                           'avg_reviews_scaled',
+                                           'avg_satisfaction_scaled',
+                                           'avg_bed_scaled',
+                                           'avg_bath_scaled',
+                                           'avg_minstay_scaled',
+                                           'avg_lat',
+                                           'avg_lon',
+                                           'pct_private_room',
+                                           'pct_shared_room'))
+
 hajek_probabilities_75_50_drta <- hajek_probabilities(airbnb_listings, clusters_distance_room_type_accom, 
-                                                 graph_distance_room_type_accom, .75, .5, 100)
+                                                 graph_distance_room_type_accom, .75, .5, 100, blocks)
 
 hajek_probabilities_50_50_drta <- hajek_probabilities(airbnb_listings, clusters_distance_room_type_accom, 
-                                                      graph_distance_room_type_accom, .5, .5, 100)
+                                                      graph_distance_room_type_accom, .5, .5, 100, blocks)
 
 hajek_probabilities_95_50_drta <- hajek_probabilities(airbnb_listings, clusters_distance_room_type_accom, 
-                                                      graph_distance_room_type_accom, .95, .5, 100)
+                                                      graph_distance_room_type_accom, .95, .5, 100, blocks)
 
-save(hajek_probabilities_50_50_drta, hajek_probabilities_75_50_drta, hajek_probabilities_95_50_drta, file='hajek_probabilities.Rdata')
+save(hajek_probabilities_50_50_drta, hajek_probabilities_75_50_drta, hajek_probabilities_95_50_drta, file='hajek_probabilities_blocked.Rdata')
 
 hajek_probabilities_50_50_drta[[1]][is.na(hajek_probabilities_50_50_drta[[1]])] <- 0
 hajek_probabilities_50_50_drta[[2]][is.na(hajek_probabilities_50_50_drta[[2]])] <- 0
@@ -146,8 +192,8 @@ airbnb_listings$prob_control_95_thresh <- hajek_probabilities_95_50_drta[[2]]
 
 save(airbnb_listings, clusters_distance_room_type_accom, graph_distance_room_type_accom, 
      clusters_distance_room_type, graph_distance_room_type, graph_distance_only, clusters_distance_only,
-     file = 'data_for_simulation.Rdata')
-
+     blocks, df_for_blocking,
+     file = 'data_for_simulation_blocked.Rdata')
 
 #hajek_probabilities_75_50_drt <- hajek_probabilities(airbnb_listings, clusters_distance_room_type, 
 #                                                      graph_distance_room_type, .75, .5, 100)
